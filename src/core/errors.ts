@@ -182,8 +182,11 @@ export function createApiError(input: {
     problem: Problem | undefined
     rawText: string | undefined
     headers: Record<string, string>
+    /** Masks secrets in server-provided text (the client's own key included). */
+    scrub?: (text: string) => string
 }): APIError {
     const { status, problem, rawText, headers } = input
+    const scrub = input.scrub ?? redact
 
     const code = problem?.code
     const Ctor =
@@ -195,17 +198,19 @@ export function createApiError(input: {
     // snippet into `detail` so the failure is still legible.
     const snippet =
         problem === undefined && rawText !== undefined && rawText.trim() !== ''
-            ? redact(rawText.slice(0, 500))
+            ? scrub(rawText.slice(0, 500))
             : undefined
+    const problemDetail =
+        problem?.detail === undefined ? undefined : scrub(problem.detail)
 
     return new Ctor({
         status,
         code,
         type: problem?.type,
-        title: problem?.title ?? `HTTP ${status}`,
-        detail: problem?.detail ?? snippet,
+        title: problem?.title === undefined ? `HTTP ${status}` : scrub(problem.title),
+        detail: problemDetail ?? snippet,
         requestId: problem?.request_id ?? headers['request-id'],
-        errors: problem?.errors,
+        errors: problem?.errors?.map(e => ({ ...e, message: scrub(e.message) })),
         headers,
     })
 }

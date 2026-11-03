@@ -21,6 +21,7 @@ export function redact(input: string): string {
  * `sta_live_` shape (a key from a future format, a test key).
  */
 export function redactExact(input: string, secret: string): string {
-    if (secret.length < 8) return redact(input)
-    return redact(input.split(secret).join('***'))
+    const masked = redact(input)
+    if (secret.length < 8) return masked
+    return masked.split(secret).join('***')
 }

@@ -24,7 +24,7 @@ import {
     createApiError,
 } from './errors'
 import { parseRateLimit, type RateLimitInfo } from './rateLimit'
-import { redact } from './redaction'
+import { redact, redactExact } from './redaction'
 import {
     cappedRetryAfterMs,
     fullJitterBackoffMs,
@@ -85,10 +85,13 @@ export class HttpClient {
     private readonly settings: Settings
     /** Writes the auth header. The key lives only in this closure. */
     private readonly authorize: (headers: Headers) => void
+    /** Masks the key (and any key-shaped text) in server-provided strings. */
+    private readonly scrub: (text: string) => string
 
     constructor(config: HttpConfig) {
         const { apiKey, authHeader, ...settings } = config
         this.settings = settings
+        this.scrub = (text: string) => redactExact(text, apiKey)
         this.authorize = (headers: Headers) => {
             headers.delete('authorization')
             headers.delete('x-api-key')
@@ -175,6 +178,7 @@ export class HttpClient {
             problem,
             rawText,
             headers,
+            scrub: this.scrub,
         })
         this.log(
             req,
