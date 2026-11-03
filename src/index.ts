@@ -8,6 +8,7 @@ export { VERSION } from './version'
 // Errors
 export {
     APIConnectionError,
+    APIDecodeError,
     APIError,
     APIServerError,
     APITimeoutError,

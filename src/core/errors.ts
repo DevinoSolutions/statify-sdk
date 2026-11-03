@@ -37,6 +37,16 @@ export class APITimeoutError extends APIConnectionError {
     }
 }
 
+/**
+ * A 2xx answer whose body is not JSON. Not a transport failure, so it is never
+ * retried: re-sending the same request would get the same body.
+ */
+export class APIDecodeError extends StatifyError {
+    constructor(message: string, options?: { cause?: unknown }) {
+        super(message, options)
+    }
+}
+
 /** Fields shared by every HTTP-level (non-2xx) error. */
 export interface APIErrorInit {
     status: number

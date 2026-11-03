@@ -17,6 +17,7 @@
 import type { Problem } from '../types'
 import {
     APIConnectionError,
+    APIDecodeError,
     APIError,
     APITimeoutError,
     QuotaExhaustedError,
@@ -157,7 +158,9 @@ export class HttpClient {
             if (caller) caller.removeEventListener('abort', onCallerAbort)
         }
 
-        const headers = headersToRecord(response.headers)
+        // Header values are server-controlled: an echoing proxy could reflect the
+        // key, so they are scrubbed like every other server-provided string.
+        const headers = scrubHeaders(headersToRecord(response.headers), this.scrub)
         const requestId = headers['request-id']
 
         if (response.ok) {
@@ -272,6 +275,15 @@ function isStringArray(value: QueryValue): value is readonly string[] {
     return Array.isArray(value)
 }
 
+function scrubHeaders(
+    headers: Record<string, string>,
+    scrub: (text: string) => string,
+): Record<string, string> {
+    const out: Record<string, string> = {}
+    for (const [key, value] of Object.entries(headers)) out[key] = scrub(value)
+    return out
+}
+
 function headersToRecord(headers: Headers): Record<string, string> {
     const record: Record<string, string> = {}
     headers.forEach((value, key) => {
@@ -286,7 +298,7 @@ async function parseJsonBody(response: Response): Promise<unknown> {
     try {
         return JSON.parse(text)
     } catch (err) {
-        throw new APIConnectionError(
+        throw new APIDecodeError(
             `The API answered ${response.status} with a body that is not JSON.`,
             { cause: err },
         )
@@ -305,7 +317,14 @@ async function readErrorBody(
     if (text.trim() === '') return { problem: undefined, rawText: undefined }
     try {
         const parsed: unknown = JSON.parse(text)
-        if (isProblem(parsed)) return { problem: parsed, rawText: text }
+        if (isProblem(parsed)) {
+            // A proxy may drop `title`; the machine `code` is what classifies it.
+            const title =
+                typeof parsed.title === 'string'
+                    ? parsed.title
+                    : `HTTP ${response.status}`
+            return { problem: { ...parsed, title }, rawText: text }
+        }
         return { problem: undefined, rawText: text }
     } catch {
         return { problem: undefined, rawText: text }
@@ -315,8 +334,10 @@ async function readErrorBody(
 function isProblem(value: unknown): value is Problem {
     if (typeof value !== 'object' || value === null) return false
     const v = value as Record<string, unknown>
-    // A problem body always carries a machine `code` and a human `title`.
-    return typeof v.code === 'string' && typeof v.title === 'string'
+    // The machine `code` identifies a problem. `title` is optional here, so a
+    // proxy-rewritten body (a quota_exhausted without its title) is still
+    // classified by its code and never retried as a plain rate limit.
+    return typeof v.code === 'string'
 }
 
 function isAbortError(err: unknown): boolean {

@@ -243,7 +243,8 @@ Every `APIError` carries `status`, `code`, `type` (the problem's docs URI),
 | `internal_error` | 500 | `APIServerError` |
 
 Transport-level failures throw `APIConnectionError` (with `cause`) or
-`APITimeoutError`. (`idempotency_in_progress` / `idempotency_key_reused` exist in
+`APITimeoutError`. A success answer whose body is not JSON (a proxy's maintenance
+page) throws `APIDecodeError` and is not retried. (`idempotency_in_progress` / `idempotency_key_reused` exist in
 the shared code registry but no read-only v1 operation returns them.)
 
 ## Retries

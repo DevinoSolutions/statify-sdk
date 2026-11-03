@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     APIConnectionError,
+    APIDecodeError,
     APITimeoutError,
     AuthenticationError,
     InvalidRequestError,
@@ -231,5 +232,47 @@ describe('backoff math', () => {
         expect(fullJitterBackoffMs(4, max)).toBe(7999)
         expect(fullJitterBackoffMs(10, max)).toBe(7999)
         expect(fullJitterBackoffMs(3, () => 0)).toBe(0)
+    })
+})
+
+describe('review hardening (2026-11-03)', () => {
+    it('a header echoing the key is scrubbed on errors and on the raw response', async () => {
+        const echo = { 'x-echo-authorization': `Bearer ${MOCK_API_KEY}` }
+        const failing = sequence({ ...MOCK_problem('invalid_request'), headers: echo })
+        const err = await client(failing.fetch).usage.get().catch((e: unknown) => e)
+        expect(JSON.stringify((err as { headers: unknown }).headers)).not.toContain(MOCK_API_KEY)
+        const ok = sequence({ ...OK, headers: echo })
+        const res = await client(ok.fetch).request({ method: 'GET', path: '/v1/usage' })
+        expect(JSON.stringify(res.headers)).not.toContain(MOCK_API_KEY)
+    })
+
+    it('a quota_exhausted body without its title is still classified by code and never retried', async () => {
+        const mock = sequence({
+            status: 429,
+            body: { code: 'quota_exhausted', status: 429 },
+            headers: { 'retry-after': '3600' },
+        })
+        const err = await client(mock.fetch).usage.get().catch((e: unknown) => e)
+        expect(err).toBeInstanceOf(QuotaExhaustedError)
+        expect((err as { title: string }).title).toBe('HTTP 429')
+        expect(mock.requests).toHaveLength(1)
+    })
+
+    it('a 200 whose body is not JSON is an APIDecodeError, sent once', async () => {
+        const mock = sequence({ status: 200, body: '<html>maintenance</html>' })
+        const err = await client(mock.fetch).usage.get().catch((e: unknown) => e)
+        expect(err).toBeInstanceOf(APIDecodeError)
+        expect(err).not.toBeInstanceOf(APIConnectionError)
+        expect(mock.requests).toHaveLength(1)
+    })
+
+    it('refuses a maxRetries or timeoutMs that would never terminate', () => {
+        const { fetch } = sequence(OK)
+        for (const maxRetries of [Number.NaN, Infinity, -1, 1.5]) {
+            expect(() => client(fetch, { maxRetries })).toThrow(/maxRetries/)
+        }
+        for (const timeoutMs of [Number.NaN, 0, -5, Infinity]) {
+            expect(() => client(fetch, { timeoutMs })).toThrow(/timeoutMs/)
+        }
     })
 })

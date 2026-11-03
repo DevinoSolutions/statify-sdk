@@ -123,13 +123,22 @@ export class Statify {
             )
         }
 
+        const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+        const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES
+        if (!Number.isInteger(maxRetries) || maxRetries < 0) {
+            throw new Error('`maxRetries` must be a whole number from 0.')
+        }
+        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            throw new Error('`timeoutMs` must be a positive number of milliseconds.')
+        }
+
         this.http = new HttpClient({
             baseUrl: this.baseUrl,
             apiKey,
             authHeader: options.authHeader ?? 'bearer',
             fetchImpl,
-            timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-            maxRetries: options.maxRetries ?? DEFAULT_MAX_RETRIES,
+            timeoutMs,
+            maxRetries,
             userAgent: `statify-sdk-ts/${VERSION}`,
             defaultHeaders: options.defaultHeaders ?? {},
             debug,
