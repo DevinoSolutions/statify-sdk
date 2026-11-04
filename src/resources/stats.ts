@@ -1,6 +1,7 @@
 import type { HttpClient, QueryParams } from '../core/http'
 import { Page, type PageFetcher } from '../core/pagination'
 import type {
+    AppStatsBreakdown,
     AppStatsCompareMode,
     AppStatsEntry,
     AppStatsMetric,
@@ -22,7 +23,8 @@ export interface StatsQueryParams {
     /**
      * The metric groups (at most 8, each once): an array, or a comma-separated
      * string. `new_users` is GA4 first visits to the website, never signups;
-     * `signups` is not collected yet and answers a `not_synced` data gap.
+     * `signups` is distinct persons firing the app's signup event (a `not_synced`
+     * data gap until a sync has looked).
      */
     metrics: readonly AppStatsMetric[] | string
     /** Only the series from this store. */
@@ -32,6 +34,12 @@ export interface StatsQueryParams {
      * (`compare_total`, `change_pct`).
      */
     compare?: AppStatsCompareMode
+    /**
+     * `source`: split each `signups` series by acquisition source
+     * (`series.breakdown`). `metrics` must include `signups`, or the API answers
+     * 400. Breakdown points count toward the points cap.
+     */
+    by?: AppStatsBreakdown
 }
 
 /** Params of `GET /v1/stats`. */
@@ -52,6 +60,7 @@ export function statsQuery(params: StatsQueryParams): QueryParams {
         metrics: params.metrics,
         store: params.store,
         compare: params.compare,
+        by: params.by,
     }
 }
 

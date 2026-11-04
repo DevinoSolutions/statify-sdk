@@ -57,6 +57,55 @@ describe('query serialization', () => {
         })
     })
 
+    it('apps.stats sends by=source and returns the signups breakdown as the API sent it', async () => {
+        const series = {
+            metric: 'signups',
+            family: 'signups',
+            store: 'posthog',
+            label: 'signups (user_signed_up)',
+            aggregation: 'sum',
+            quality: 'exact',
+            latest_date: '2026-10-30',
+            lag_days: 0,
+            complete_through: '2026-10-30',
+            stale: false,
+            days_stale: 1,
+            total: 5,
+            compare_total: null,
+            change_pct: null,
+            currency: null,
+            conversion_basis: null,
+            points: [{ date: '2026-10-30', value: 5 }],
+            breakdown: [
+                { source: 'google', total: 3, compare_total: null, change_pct: null, points: [{ date: '2026-10-30', value: 3 }] },
+                { source: 'other', total: 2, compare_total: null, change_pct: null, points: [{ date: '2026-10-30', value: 2 }] },
+            ],
+        }
+        const mock = MOCK_createFetch(() => ({
+            status: 200,
+            body: { app: 'super-books', range: RANGE, compare: null, series: [series], data_gaps: [] },
+        }))
+        const statify = new Statify({ apiKey: MOCK_API_KEY, fetch: mock.fetch })
+
+        const stats = await statify.apps.stats('super-books', {
+            from: '2026-10-01',
+            to: '2026-10-30',
+            metrics: ['signups'],
+            by: 'source',
+        })
+
+        expect(Object.fromEntries(mock.requests[0]!.url.searchParams)).toEqual({
+            from: '2026-10-01',
+            to: '2026-10-30',
+            metrics: 'signups',
+            by: 'source',
+        })
+        expect(stats.series[0]!.breakdown?.map((b) => [b.source, b.total])).toEqual([
+            ['google', 3],
+            ['other', 2],
+        ])
+    })
+
     it('stats.list sends apps=all and omits unset optional params', async () => {
         const mock = MOCK_createFetch(() => ({
             status: 200,

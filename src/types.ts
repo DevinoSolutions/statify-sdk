@@ -110,7 +110,10 @@ export type AppList = ListEnvelope<App>
 /**
  * The consumer metric groups a stats call can ask for.
  *
- * - `signups`: not collected yet; always answers a `not_synced` data gap.
+ * - `signups`: distinct persons per day firing the app's signup event in its own
+ *   PostHog project (the event is named in the series label). A `not_synced` data
+ *   gap until a sync has looked. Pass `by: 'source'` to split it by acquisition
+ *   source ({@link StatsSeries.breakdown}).
  * - `new_users`: GA4 first visits to the app's website, NOT account signups. Its
  *   series label is always exactly
  *   `"visitors (GA4 first visits), ~2-day lag, quality=proxy — not signups"`
@@ -169,7 +172,7 @@ export type FactQuality = Open<'exact' | 'privacy_noised' | 'lagged' | 'legacy_u
 
 /**
  * Why a requested metric has no series (or one store has none):
- * - `not_synced`: no sync collects this metric yet (e.g. `signups`);
+ * - `not_synced`: no sync has collected this metric for this app yet;
  * - `no_data`: nothing in the warehouse for this app (and store filter);
  * - `no_denominator`: a store has downloads but no impressions or page views to
  *   convert them on.
@@ -178,6 +181,32 @@ export type AppStatsGapReason = Open<'not_synced' | 'no_data' | 'no_denominator'
 
 /** The only compare mode: the same number of days right before `from`. */
 export type AppStatsCompareMode = Open<'previous_period'>
+
+/**
+ * The only breakdown: `source` splits each `signups` series by acquisition source
+ * (the person's initial UTM source, else initial referring domain, else
+ * `direct`). It applies to `signups` alone: `metrics` must include it.
+ */
+export type AppStatsBreakdown = Open<'source'>
+
+/** One acquisition source's share of a `signups` series (`by: 'source'`). */
+export interface StatsSourceBreakdown {
+    /**
+     * The source: initial UTM source, else initial referring domain (lowercased,
+     * `www.` dropped), else `direct`. `other` is the bucket for every source past
+     * the top 20 of the requested range and for values that are not a plain label
+     * or domain.
+     */
+    source: string
+    /** This source's signups over the series' range (a sum); null when it has no day in it. */
+    total: number | null
+    /** The same over the previous period; null without `compare` or without data. */
+    compare_total: number | null
+    /** `total` vs `compare_total` in percent (2 decimals); null when either is null or the previous value is 0. */
+    change_pct: number | null
+    /** This source's daily signups, oldest first; days without one are omitted. */
+    points: StatsPoint[]
+}
 
 /** One day of a series. */
 export interface StatsPoint {
@@ -251,6 +280,13 @@ export interface StatsSeries {
      * without data is omitted, never a zero.
      */
     points: StatsPoint[]
+    /**
+     * Only with `by: 'source'`, only on a `signups` series: the series split by
+     * acquisition source, the top 20 by `total` (biggest first, ties by name), then
+     * `other`. The sources partition the signups, so their totals add up to the
+     * series' `total`: never add them to it.
+     */
+    breakdown?: StatsSourceBreakdown[]
 }
 
 /** A requested metric this answer cannot give. */

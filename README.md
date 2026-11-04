@@ -152,8 +152,25 @@ Every series says what it is, how its total is formed and how far to trust it.
   always `quality: 'proxy'`, and its label is always exactly
   `visitors (GA4 first visits), ~2-day lag, quality=proxy — not signups`
   (exported as `NEW_USERS_LABEL`).
-- **`signups` is not collected yet.** Asking for it answers a `data_gaps` entry
-  with `reason: 'not_synced'`, never an empty series.
+- **`signups` are real signups**: distinct people per day who fired the app's
+  signup event in its own PostHog project (the event is named in the series
+  label). An app no sync has looked at yet answers a `data_gaps` entry with
+  `reason: 'not_synced'`, never an empty series.
+- **`by: 'source'`** splits each `signups` series by acquisition source (the
+  person's initial UTM source, else initial referring domain, else `direct`) in
+  `series.breakdown`: the top 20 sources of the range, then `other`. The sources
+  add up to the series' `total`, so never add them to it. `metrics` must include
+  `signups`.
+
+```ts
+const stats = await statify.apps.stats('superbooks', {
+    from: '2026-10-01',
+    to: '2026-10-31',
+    metrics: ['signups'],
+    by: 'source',
+})
+for (const s of stats.series[0]?.breakdown ?? []) console.log(s.source, s.total)
+```
 
 Other gap reasons: `no_data` (nothing in the warehouse for this app and store
 filter) and `no_denominator` (a store has downloads but nothing to convert them
