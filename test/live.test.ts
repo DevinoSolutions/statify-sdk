@@ -1,5 +1,5 @@
 // OPT-IN live smoke test against the real API. It runs ONLY when
-// STATIFY_API_KEY is set and never in CI (CI sets CI=true). Read-only: five GETs
+// STATIFY_API_KEY is set and never in CI (CI sets CI=true). Read-only: six GETs
 // that each count once against the workspace's daily quota (usage.get does not).
 //
 //   STATIFY_API_KEY=sta_live_... pnpm test:live
@@ -53,6 +53,27 @@ describe.skipIf(!enabled)('live: the real Statify API', () => {
                 expect(['usage', 'downloads']).toContain(s.metric)
                 expect(typeof s.quality).toBe('string')
                 expect(Array.isArray(s.points)).toBe(true)
+            }
+        }
+    })
+
+    it('gets signups by acquisition source, the breakdown summing to the series total', async () => {
+        const to = new Date()
+        const from = new Date(to.getTime() - 29 * 86_400_000)
+        const page = await statify.stats.list({
+            apps: 'all',
+            from: isoDay(from),
+            to: isoDay(to),
+            metrics: ['signups'],
+            by: 'source',
+        })
+        for (const entry of page.data) {
+            for (const s of entry.series) {
+                expect(s.metric).toBe('signups')
+                const breakdown = s.breakdown ?? []
+                for (const b of breakdown) expect(typeof b.source).toBe('string')
+                if (s.total !== null && breakdown.length > 0)
+                    expect(breakdown.reduce((n, b) => n + (b.total ?? 0), 0)).toBe(s.total)
             }
         }
     })
