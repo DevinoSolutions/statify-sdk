@@ -11,20 +11,15 @@ typed responses, typed errors, automatic retries and cursor pagination.
 - **Server-side only.** Your API key is a secret. The client throws if it
   detects a browser environment.
 
-> **Private beta: not on npm yet.** The package is `"private": true` (so
-> `npm publish` refuses it) and is published only once the owner says yes. The
-> package name may still change before the first release; it lives in one
-> place, `package.json`.
-
 ## Install
 
 ```bash
-# Private beta: build a tarball from this repo and install that
-pnpm install && pnpm build && pnpm pack          # -> statifynow-sdk-0.1.0.tgz
-pnpm add /path/to/statifynow-sdk-0.1.0.tgz       # in your project
-
-# Once published: npm install @statifynow/sdk
+npm install @statifynow/sdk
+# or: pnpm add @statifynow/sdk / yarn add @statifynow/sdk
 ```
+
+Create an API key in Statify under **Settings → API keys**
+([app.statify.now](https://app.statify.now)) and set it as `STATIFY_API_KEY`.
 
 ## Quickstart
 
@@ -324,8 +319,10 @@ pnpm smoke:dist # loads the built ESM + CJS entries against a mock fetch
 STATIFY_API_KEY=sta_live_… pnpm test:live
 ```
 
-Changes to the public surface get a changeset (`pnpm changeset`). There is no
-release workflow yet: it is added when the owner approves publishing.
+Changes to the public surface get a changeset (`pnpm changeset`). Releasing:
+run `pnpm version` (applies the changesets: bumps `package.json`, writes
+`CHANGELOG.md`) in a PR; when it merges, `.github/workflows/release.yml`
+publishes the new version to npm with provenance through npm Trusted Publishing.
 
 ## License
 
