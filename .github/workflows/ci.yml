@@ -2,8 +2,7 @@
 # The live smoke test (test/live.test.ts) never runs here: it needs
 # STATIFY_API_KEY and also skips itself whenever CI is set.
 #
-# No release job: the package is "private": true. A release workflow (npm
-# Trusted Publishing, provenance) is added when the owner approves publishing.
+# Publishing lives in release.yml.
 name: ci
 
 on:

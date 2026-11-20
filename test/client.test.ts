@@ -98,10 +98,16 @@ describe('the client sends the documented auth, base URL and user agent', () => 
     it('keeps VERSION in sync with package.json', () => {
         const pkg = JSON.parse(
             readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-        ) as { version: string; private?: boolean }
+        ) as {
+            version: string
+            private?: boolean
+            publishConfig?: { access?: string; provenance?: boolean }
+        }
         expect(VERSION).toBe(pkg.version)
-        // Publishing waits for the owner's yes: npm refuses a private package.
-        expect(pkg.private).toBe(true)
+        // Published publicly with provenance (owner's yes, 2026-11-19); a stray
+        // "private": true would make npm refuse every release.
+        expect(pkg.private).toBeUndefined()
+        expect(pkg.publishConfig).toEqual({ access: 'public', provenance: true })
     })
 })
 

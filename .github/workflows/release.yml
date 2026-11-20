@@ -1,0 +1,76 @@
+# npm release for @devinosolutions/statify-sdk.
+#
+# Publishes when package.json's version is ahead of npm (Changesets governs the
+# version: `pnpm changeset` on a PR, `pnpm changeset version` in a release PR,
+# then this workflow publishes on the push to main).
+#
+# Auth: npm Trusted Publishing (OIDC), registered on npmjs.com for
+# DevinoSolutions/statify-sdk + release.yml. npm matches the workflow filename
+# EXACTLY, so do not rename this file. OIDC needs a GitHub-hosted runner,
+# `id-token: write` and npm >= 11.5.1. NODE_AUTH_TOKEN reads secrets.NPM_TOKEN,
+# which exists ONLY for a brand-new package's first publish (npm cannot attach a
+# trusted publisher to a package that does not exist yet) and is deleted right
+# after; when it is unset, npm uses OIDC.
+#
+# TODO(statify T-13338, 2026-11-20): the trusted publisher is NOT registered yet. Editing npm package
+# settings needs devinobot's 2FA, which npm currently refuses; until it is set, a release needs the NPM_TOKEN
+# secret (devinobot's @devinosolutions publish token), set for the release and deleted after it.
+#
+# prepublishOnly is not used: the typecheck, unit tests, build and dist smoke run
+# as steps below, so a red suite blocks the release.
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing + sigstore provenance
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+      - run: pnpm smoke:dist
+
+      # Trusted publishing needs npm >= 11.5.1; pinned, never @latest.
+      - run: npm install -g npm@11.21.3 && npm --version
+
+      - name: Publish when package.json is ahead of npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          LOCAL=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "$NAME" version 2>/dev/null || echo "none")
+          echo "name=$NAME local=$LOCAL published=$PUBLISHED"
+          if [ "$LOCAL" = "$PUBLISHED" ]; then
+            echo "Version $LOCAL is already on npm: nothing to publish."
+            exit 0
+          fi
+          npm publish --provenance --access public
