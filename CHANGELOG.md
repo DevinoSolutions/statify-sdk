@@ -1,4 +1,4 @@
-# @statifynow/sdk
+# @devinosolutions/statify-sdk
 
 ## 0.1.0
 

@@ -1,5 +1,5 @@
 {
-    "name": "@statifynow/sdk",
+    "name": "@devinosolutions/statify-sdk",
     "version": "0.1.0",
     "description": "Official TypeScript SDK for the Statify public API (app.statify.now/v1): app-store, web and product analytics, read-only.",
     "license": "MIT",

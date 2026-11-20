@@ -1,4 +1,4 @@
-# @statifynow/sdk
+# @devinosolutions/statify-sdk
 
 The official TypeScript SDK for the [Statify](https://statify.now) public API
 (`https://app.statify.now/v1`). Read your workspace's app-store, web and product
@@ -14,8 +14,8 @@ typed responses, typed errors, automatic retries and cursor pagination.
 ## Install
 
 ```bash
-npm install @statifynow/sdk
-# or: pnpm add @statifynow/sdk / yarn add @statifynow/sdk
+npm install @devinosolutions/statify-sdk
+# or: pnpm add @devinosolutions/statify-sdk / yarn add @devinosolutions/statify-sdk
 ```
 
 Create an API key in Statify under **Settings → API keys**
@@ -24,7 +24,7 @@ Create an API key in Statify under **Settings → API keys**
 ## Quickstart
 
 ```ts
-import { Statify } from '@statifynow/sdk'
+import { Statify } from '@devinosolutions/statify-sdk'
 
 const statify = new Statify() // reads process.env.STATIFY_API_KEY
 
@@ -214,7 +214,7 @@ import {
     PermissionDeniedError,
     QuotaExhaustedError,
     RateLimitError,
-} from '@statifynow/sdk'
+} from '@devinosolutions/statify-sdk'
 
 try {
     await statify.apps.stats('superbooks', { from, to, metrics: ['downloads'] })

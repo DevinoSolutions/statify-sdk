@@ -1,4 +1,4 @@
-# npm release for @statifynow/sdk.
+# npm release for @devinosolutions/statify-sdk.
 #
 # Publishes when package.json's version is ahead of npm (Changesets governs the
 # version: `pnpm changeset` on a PR, `pnpm changeset version` in a release PR,
@@ -11,6 +11,10 @@
 # which exists ONLY for a brand-new package's first publish (npm cannot attach a
 # trusted publisher to a package that does not exist yet) and is deleted right
 # after; when it is unset, npm uses OIDC.
+#
+# TODO(statify T-13338, 2026-11-20): the trusted publisher is NOT registered yet. Editing npm package
+# settings needs devinobot's 2FA, which npm currently refuses; until it is set, a release needs the NPM_TOKEN
+# secret (devinobot's @devinosolutions publish token), set for the release and deleted after it.
 #
 # prepublishOnly is not used: the typecheck, unit tests, build and dist smoke run
 # as steps below, so a red suite blocks the release.
