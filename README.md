@@ -322,8 +322,8 @@ STATIFY_API_KEY=sta_live_… pnpm test:live
 Changes to the public surface get a changeset (`pnpm changeset`). Releasing:
 run `pnpm changeset version` (applies the changesets: bumps `package.json`,
 writes `CHANGELOG.md`) in a PR; when it merges, `.github/workflows/release.yml`
-publishes the new version to npm with provenance (through an `NPM_TOKEN` secret
-until npm Trusted Publishing is registered for the package).
+publishes the new version to npm with provenance through npm Trusted Publishing
+(OIDC), so no npm token is stored anywhere.
 
 ## License
 

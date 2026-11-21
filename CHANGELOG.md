@@ -1,5 +1,12 @@
 # @devinosolutions/statify-sdk
 
+## 0.1.1
+
+### Patch Changes
+
+- The README's release section says new versions are published through npm Trusted Publishing,
+  with no stored npm token. No code change.
+
 ## 0.1.0
 
 First public release. Read-only client for the Statify public API
