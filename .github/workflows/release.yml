@@ -29,6 +29,9 @@ concurrency:
 
 jobs:
   publish:
+    # npm's trusted publisher pins the repo and this file, not the branch: a dispatch from another
+    # branch must not publish.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -39,7 +42,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
+          # No dependency cache in a job that holds an OIDC publish token (npm and setup-node docs).
+          package-manager-cache: false
           registry-url: 'https://registry.npmjs.org'
 
       - run: pnpm install --frozen-lockfile
