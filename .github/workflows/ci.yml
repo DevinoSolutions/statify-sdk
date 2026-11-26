@@ -19,7 +19,9 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # The fleet's own runner for our own pushes and PRs (no GitHub-hosted minutes, 2026-11-26); a fork or
+    # Dependabot PR stays on a hosted runner, so untrusted code never runs on ours.
+    runs-on: ${{ (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')) && 'ubuntu-devino' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -46,7 +48,9 @@ jobs:
   # The engines floor is Node 20, but vitest 5 needs Node 22+. Build on 22, then
   # load the built ESM and CJS entries on Node 20 against a mock fetch.
   node20-dist:
-    runs-on: ubuntu-latest
+    # The fleet's own runner for our own pushes and PRs (no GitHub-hosted minutes, 2026-11-26); a fork or
+    # Dependabot PR stays on a hosted runner, so untrusted code never runs on ours.
+    runs-on: ${{ (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]')) && 'ubuntu-devino' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
